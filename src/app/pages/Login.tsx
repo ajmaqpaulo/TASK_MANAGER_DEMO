@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { toast } from 'sonner';
+import { iniciarSesion } from '@/lib/auth';
+import { ApiError } from '@/lib/api';
 import logo from '@/assets/aae02afcf95717fd7154788982f1cae7f0997dcb.png';
 
 export default function Login() {
@@ -8,6 +11,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [cargando, setCargando] = useState(false);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -24,8 +28,8 @@ export default function Login() {
     if (!password) {
       return 'La contraseña es requerida';
     }
-    if (password.length < 6) {
-      return 'La contraseña debe tener al menos 6 caracteres';
+    if (password.length < 8) {
+      return 'La contraseña debe tener al menos 8 caracteres';
     }
     return '';
   };
@@ -38,24 +42,30 @@ export default function Login() {
     setPasswordError(validatePassword(password));
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const emailValidation = validateEmail(email);
     const passwordValidation = validatePassword(password);
-    
     setEmailError(emailValidation);
     setPasswordError(passwordValidation);
-    
-    if (!emailValidation && !passwordValidation) {
-      console.log('Login attempt with:', { email, password });
+    if (emailValidation || passwordValidation) return;
+
+    setCargando(true);
+    try {
+      await iniciarSesion(email, password);
+      toast.success('Bienvenido');
       navigate('/dashboard');
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : 'No se pudo iniciar sesión';
+      toast.error(msg);
+    } finally {
+      setCargando(false);
     }
   };
 
   const handleGoogleLogin = () => {
-    console.log('Google login attempt');
-    navigate('/dashboard');
+    toast.info('Inicio de sesión con Google próximamente disponible');
   };
 
   return (
@@ -175,7 +185,8 @@ export default function Login() {
             {/* Botón de Login */}
             <button
               type="submit"
-              className="w-full py-3.5 mt-8 transition-all duration-300 hover:shadow-xl active:scale-[0.98] uppercase tracking-widest text-sm font-semibold"
+              disabled={cargando}
+              className="w-full py-3.5 mt-8 transition-all duration-300 hover:shadow-xl active:scale-[0.98] uppercase tracking-widest text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
               style={{
                 backgroundColor: '#9D833E',
                 color: '#14151A',
@@ -190,7 +201,7 @@ export default function Login() {
                 e.currentTarget.style.boxShadow = '0 4px 16px 0 rgba(157, 131, 62, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.2)';
               }}
             >
-              Ingresar
+              {cargando ? 'Ingresando…' : 'Ingresar'}
             </button>
           </form>
 

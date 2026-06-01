@@ -1,36 +1,51 @@
 import { Outlet, useNavigate, useLocation } from 'react-router';
-import { LayoutDashboard, ClipboardList, CheckSquare, UserPlus, LogOut, ChevronLeft, ChevronRight, FileText, Building2, Shield } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, UserPlus, LogOut, ChevronLeft, ChevronRight, FileText, Building2, Shield, UserCircle } from 'lucide-react';
 import logo from '@/assets/aae02afcf95717fd7154788982f1cae7f0997dcb.png';
 import { useState } from 'react';
+import { toast } from 'sonner';
+import { cerrarSesion } from '@/lib/auth';
+import { sesion } from '@/lib/api';
 
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isExpanded, setIsExpanded] = useState(true);
 
+  const usuario = sesion.usuario();
+  const permisos = usuario?.permisos ?? [];
+  const esAdmin = usuario?.rol_codigo === 'ADMIN';
+  const puedeAprobar = permisos.includes('APROBAR_SOLICITUDES');
+  const puedeVerReportes = permisos.includes('VER_REPORTES');
+
   const menuSections = [
     {
       title: 'Principal',
       items: [
-        { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-        { path: '/approvals', icon: CheckSquare, label: 'Aprobaciones' },
-      ]
+        { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', visible: true },
+        { path: '/approvals', icon: CheckSquare, label: 'Aprobaciones', visible: puedeAprobar },
+      ].filter((i) => i.visible),
     },
     {
       title: 'Administración',
       items: [
-        { path: '/register', icon: UserPlus, label: 'Usuarios' },
-        { path: '/organizational-units', icon: Building2, label: 'Unidades Org.' },
-        { path: '/roles', icon: Shield, label: 'Roles' },
-      ]
+        { path: '/register',             icon: UserPlus,  label: 'Usuarios',      visible: esAdmin },
+        { path: '/organizational-units', icon: Building2, label: 'Unidades Org.', visible: esAdmin },
+        { path: '/roles',                icon: Shield,    label: 'Roles',         visible: esAdmin },
+      ].filter((i) => i.visible),
     },
     {
       title: 'Reportes',
       items: [
-        { path: '/reports', icon: FileText, label: 'Reportes' },
-      ]
-    }
-  ];
+        { path: '/reports', icon: FileText, label: 'Reportes', visible: puedeVerReportes },
+      ].filter((i) => i.visible),
+    },
+    {
+      title: 'Cuenta',
+      items: [
+        { path: '/profile', icon: UserCircle, label: 'Mi perfil', visible: true },
+      ],
+    },
+  ].filter((sec) => sec.items.length > 0);
 
   const isActive = (path: string) => {
     if (path === '/tasks/new') {
@@ -39,7 +54,9 @@ export default function Layout() {
     return location.pathname === path;
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await cerrarSesion();
+    toast.success('Sesión cerrada');
     navigate('/');
   };
 

@@ -1,4 +1,5 @@
 import { createBrowserRouter, redirect } from 'react-router';
+import { sesion } from '@/lib/api';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -10,14 +11,19 @@ import OrganizationalUnits from './pages/OrganizationalUnits';
 import Roles from './pages/Roles';
 import Layout from './components/Layout';
 
+const requiereAuth = () => (sesion.token() ? null : redirect('/'));
+const yaLogueado   = () => (sesion.token() ? redirect('/dashboard') : null);
+
 export const router = createBrowserRouter([
   {
     path: '/',
     Component: Login,
+    loader: yaLogueado,
   },
   {
     path: '/',
     Component: Layout,
+    loader: requiereAuth,
     children: [
       {
         path: 'register',
